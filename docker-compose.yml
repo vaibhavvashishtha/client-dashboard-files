@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./backend:/code
+      - ./backend/storage:/code/storage
+    environment:
+      - SECRET_KEY=mysupersecretkey
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=120
+      - DATABASE_URL=sqlite:///./app.db
+    ports:
+      - "8000:8000"
+    working_dir: /code
+
+  frontend:
+    build:
+      context: ./frontend
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    working_dir: /app
+    depends_on:
+      - backend
