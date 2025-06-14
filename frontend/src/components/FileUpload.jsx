@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 
-export default function FileUpload({ file, setFile, handleUpload, uploading, error }) {
+export default function FileUpload({ onFileSelect, error, className = '' }) {
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -10,128 +10,77 @@ export default function FileUpload({ file, setFile, handleUpload, uploading, err
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const [file, setFile] = useState(null);
+
+  const handleFileSelect = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      onFileSelect(selectedFile);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <label htmlFor="file" className="block text-sm font-medium text-gray-700">
-          Select File
-        </label>
-        <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="space-y-2 text-center">
-            <svg
-              className="mx-auto h-8 w-8 text-gray-400"
-              stroke="currentColor"
-              fill="none"
-              viewBox="0 0 48 48"
-              aria-hidden="true"
-            >
-              <path
-                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <div className="flex text-sm text-gray-600">
-              <label
-                htmlFor="file"
-                className="relative cursor-pointer bg-white rounded-md font-medium text-primary-600 hover:text-primary-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary-500"
-              >
-                <span>Upload a file</span>
-                <input
-                  id="file"
-                  name="file"
-                  type="file"
-                  accept=".xls,.xlsx"
-                  onChange={(e) => {
-                    const selectedFile = e.target.files[0];
-                    if (selectedFile) {
-                      const maxSize = 100 * 1024 * 1024; // 100MB in bytes
-                      const allowedTypes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                                          'application/vnd.ms-excel'];
-                      
-                      if (!allowedTypes.includes(selectedFile.type)) {
-                        error("Please select an XLS or XLSX file");
-                        return;
-                      }
-                      
-                      if (selectedFile.size > maxSize) {
-                        error("File size exceeds 100MB limit");
-                        return;
-                      }
-                      
-                      setFile(selectedFile);
-                    }
-                  }}
-                  className="sr-only"
-                />
-              </label>
-              <p className="pl-1">or drag and drop</p>
+    <div className={className}>
+      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+        <div className="space-y-2">
+          {file ? (
+            <div className="bg-green-50 p-4 rounded-md">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-green-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-sm font-medium text-green-800">{file.name}</h3>
+                  <p className="text-sm text-green-700">
+                    {formatFileSize(file.size)} • {file.type}
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="text-xs text-gray-500">
-              XLS/XLSX files up to 100MB
-            </p>
-          </div>
+          ) : (
+            <div>
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              </svg>
+              <div className="mt-4 flex text-sm text-gray-600">
+                <label
+                  htmlFor="file-upload"
+                  className="relative cursor-pointer bg-white rounded-md font-medium text-indigo-600 hover:text-indigo-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-indigo-500"
+                >
+                  <span>Upload a file</span>
+                  <input
+                    id="file-upload"
+                    name="file-upload"
+                    type="file"
+                    accept=".xls,.xlsx"
+                    onChange={handleFileSelect}
+                    className="sr-only"
+                  />
+                </label>
+                <p className="pl-1">or drag and drop</p>
+              </div>
+              <p className="text-xs text-gray-500">
+                XLS, XLSX up to 100MB
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-4">
+        <div className="mt-4 rounded-md bg-red-50 p-4">
           <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                {error}
-              </h3>
+              <h3 className="text-sm font-medium text-red-800">{error}</h3>
             </div>
-          </div>
-        </div>
-      )}
-
-      <div>
-        <button
-          onClick={handleUpload}
-          disabled={uploading || !file}
-          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {uploading ? (
-            <svg
-              className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-            </svg>
-          ) : (
-            <span>Upload File</span>
-          )}
-        </button>
-      </div>
-
-      {file && (
-        <div className="bg-blue-50 p-4 rounded-md">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="font-medium text-gray-900">{file.name}</p>
-              <p className="text-sm text-gray-500">
-                {formatFileSize(file.size)} • {format(new Date(), 'MMM d, yyyy')}
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setFile(null);
-              }}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              Remove
-            </button>
           </div>
         </div>
       )}

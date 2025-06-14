@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 
-export default function DateRangePicker({ startDate, endDate, setStartDate, setEndDate }) {
+export default function DateRangePicker({ startDate, endDate, onStartDateChange, onEndDateChange }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -20,7 +20,7 @@ export default function DateRangePicker({ startDate, endDate, setStartDate, setE
               id="start-date"
               className="block w-full rounded-md border-gray-300 pl-10 py-2 pr-2 sm:text-sm focus:border-primary-500 focus:ring-primary-500"
               value={startDate ? format(startDate, 'yyyy-MM-dd') : ''}
-              onChange={(e) => setStartDate(new Date(e.target.value))}
+              onChange={(e) => onStartDateChange(new Date(e.target.value))}
               min="2000-01-01"
               max="2099-12-31"
             />
@@ -41,7 +41,7 @@ export default function DateRangePicker({ startDate, endDate, setStartDate, setE
               id="end-date"
               className="block w-full rounded-md border-gray-300 pl-10 py-2 pr-2 sm:text-sm focus:border-primary-500 focus:ring-primary-500"
               value={endDate ? format(endDate, 'yyyy-MM-dd') : ''}
-              onChange={(e) => setEndDate(new Date(e.target.value))}
+              onChange={(e) => onEndDateChange(new Date(e.target.value))}
               min="2000-01-01"
               max="2099-12-31"
             />

@@ -1,9 +1,9 @@
 import React from 'react';
 import { format } from 'date-fns';
 
-export default function FileList({ uploadHistory }) {
+export default function FileList({ uploadHistory = [] }) {
   return (
-    uploadHistory.length > 0 && (
+    uploadHistory && uploadHistory.length > 0 && (
       <div className="mt-6">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Upload History</h2>
         <div className="overflow-x-auto">

@@ -25,6 +25,20 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/upload")
+
+@router.get("/history")
+def get_upload_history(
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    history = db.query(FileMeta).filter(FileMeta.user_id == user.id).all()
+    return [{
+        "name": f.name,
+        "size": f.size,
+        "type": f.type,
+        "date": f.uploaded_at.isoformat(),
+        "status": f.status
+    } for f in history]
 def upload_file(
     file: UploadFile = File(...),
     start_date: date = Form(...),
@@ -32,6 +46,16 @@ def upload_file(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    # Validate file type
+    if not file.filename.lower().endswith(('.xls', '.xlsx')):
+        raise HTTPException(status_code=400, detail="File must be XLS or XLSX")
+    
+    # Validate file size (100MB limit)
+    MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB in bytes
+    file_size = file.size
+    if file_size > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail=f"File size exceeds 100MB limit")
+    
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     with open(file_path, "wb") as buffer:
