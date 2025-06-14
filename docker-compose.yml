@@ -16,16 +16,20 @@ services:
     ports:
       - "8000:8000"
     working_dir: /code
+    networks:
+      - client-dashboard-network
 
   frontend:
     build:
       context: ./frontend
-    command: npm run dev -- --host
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "5173:5173"
-    working_dir: /app
+      - "80:80"
     depends_on:
       - backend
+    networks:
+      - client-dashboard-network
+    restart: always
+
+networks:
+  client-dashboard-network:
+    driver: bridge
