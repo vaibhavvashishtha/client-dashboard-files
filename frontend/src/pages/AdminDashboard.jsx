@@ -39,7 +39,7 @@ export default function AdminDashboard({ token }) {
 
   const fetchClientFiles = async () => {
     try {
-      const response = await axios.get(`/api/files/client/${selectedClient}`, {
+      const response = await axios.get(`/files/history`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -48,6 +48,31 @@ export default function AdminDashboard({ token }) {
     } catch (error) {
       console.error('Error fetching client files:', error);
     }
+  };
+
+  const handleDownload = async (file) => {
+    try {
+      const response = await axios.get(`/files/download/${file.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        responseType: 'blob'
+      });
+      
+      // Create a blob URL and trigger download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', file.name);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download file');
+    }
+  };
   };
 
   const handleDownload = async (file) => {
