@@ -32,13 +32,6 @@ def get_upload_history(
     user=Depends(get_current_user)
 ):
     history = db.query(FileMeta).filter(FileMeta.user_id == user.id).all()
-    return [{
-        "name": f.name,
-        "size": f.size,
-        "type": f.type,
-        "date": f.uploaded_at.isoformat(),
-        "status": f.status
-    } for f in history]
 def upload_file(
     file: UploadFile = File(...),
     start_date: date = Form(...),
@@ -55,16 +48,12 @@ def upload_file(
     file_size = file.size
     if file_size > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail=f"File size exceeds 100MB limit")
-    
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+
+    # Save file metadata
     file_meta = FileMeta(
-        filename=file.filename,
-        path=file_path,
-        uploaded_by=user.id,
-        client_id=user.client_id,
+        name=file.filename,
+        size=file_size,
+        type=file.content_type,
         start_date=start_date,
         end_date=end_date,
     )
