@@ -4,36 +4,31 @@ import { format } from "date-fns";
 import { ArrowDownTrayIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 
-const downloadFile = async (fileId, filename) => {
-  try {
-    const response = await axios.get(`/files/download/${fileId}`, {
-      responseType: 'blob',
-      headers: {
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      }
-    });
+const downloadFile = (fileId, filename) => {
+  // Create a temporary form
+  const form = document.createElement('form');
+  form.method = 'GET';
+  form.action = `/files/download/${fileId}`;
+  form.target = '_self'; // Download in same tab
 
-    // Create blob URL and trigger download
-    const blob = new Blob([response.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    link.setAttribute('target', '_self'); // Download in same tab
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    if (error.response) {
-      alert(`Failed to download file: ${error.response.data.detail}`);
-    } else {
-      alert('Failed to download file. Please try again.');
-    }
-  }
+  // Add hidden input for filename
+  const filenameInput = document.createElement('input');
+  filenameInput.type = 'hidden';
+  filenameInput.name = 'filename';
+  filenameInput.value = filename;
+  form.appendChild(filenameInput);
+
+  // Add hidden input for token
+  const tokenInput = document.createElement('input');
+  tokenInput.type = 'hidden';
+  tokenInput.name = 'token';
+  tokenInput.value = localStorage.getItem('token');
+  form.appendChild(tokenInput);
+
+  // Append form to body and submit
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
 };
 
 export default function Dashboard({ token }) {

@@ -9,6 +9,46 @@ export default function AdminDashboard({ token }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchAllFiles = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('No token found. Please log in as an admin user.');
+        return;
+      }
+      
+      const response = await axios.get(`/files/debug/files`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      console.log('All files:', response.data);
+      const { files, total_data } = response.data;
+      console.log('Database files:', files);
+      
+      // Display more detailed information
+      alert(`
+        Database Statistics:
+        - Total Files: ${total_data.total_files}
+        - Files with Paths: ${total_data.files_with_paths}
+        - Files without Paths: ${total_data.files_without_paths}
+        - Unique Clients: ${total_data.unique_clients}
+        - Unique Uploaders: ${total_data.unique_uploaders}
+        
+        Check browser console for detailed file list.
+      `);
+    } catch (error) {
+      console.error('Error fetching all files:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        alert(`Failed to fetch files: ${error.response.data.detail}`);
+      } else {
+        console.error('Network error:', error.message);
+        alert('Failed to fetch files. Please try again.');
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchClients = async () => {
       try {
@@ -19,7 +59,9 @@ export default function AdminDashboard({ token }) {
         });
         setClients(response.data);
         if (response.data.length > 0) {
-          setSelectedClient(response.data[0].id);
+          const firstClient = response.data[0];
+          console.log('Setting first client:', firstClient);
+          setSelectedClient(firstClient.id);
         }
       } catch (error) {
         console.error('Error fetching clients:', error);
@@ -32,6 +74,7 @@ export default function AdminDashboard({ token }) {
   }, [token]);
 
   useEffect(() => {
+    console.log('Selected client changed:', selectedClient);
     if (selectedClient) {
       setLoading(true);
       fetchClientFiles();
@@ -40,48 +83,44 @@ export default function AdminDashboard({ token }) {
 
   const fetchClientFiles = async () => {
     try {
-      const response = await axios.get(`/admin/files/client/${selectedClient}`, {
+      console.log('Fetching files for client:', selectedClient);
+      const response = await axios.get(`/files/history`, {
         headers: {
           Authorization: `Bearer ${token}`
+        },
+        params: {
+          client_id: selectedClient === 'all' ? null : selectedClient
         }
       });
+      console.log('Files response:', response.data);
       setFiles(response.data);
     } catch (error) {
       console.error('Error fetching client files:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+        alert(`Failed to fetch files: ${error.response.data.detail}`);
+      } else {
+        console.error('Network error:', error.message);
+        alert('Failed to fetch files. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = async (file) => {
+  const handleDownload = (file) => {
     try {
-      // Create a form element
-      const form = document.createElement('form');
-      form.method = 'GET';
-      form.action = `/files/download/${file.id}`;
-      form.target = '_blank'; // Open in new tab
-
-      // Create hidden input for token
-      const tokenInput = document.createElement('input');
-      tokenInput.type = 'hidden';
-      tokenInput.name = 'token';
-      tokenInput.value = localStorage.getItem('token');
-      form.appendChild(tokenInput);
-
-      // Create hidden input for filename
-      const filenameInput = document.createElement('input');
-      filenameInput.type = 'hidden';
-      filenameInput.name = 'filename';
-      filenameInput.value = file.filename;
-      form.appendChild(filenameInput);
-
-      // Append form to body and submit
-      document.body.appendChild(form);
-      form.submit();
-      document.body.removeChild(form);
+      // Create a new iframe to trigger the download
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/files/download/${file.id}?token=${encodeURIComponent(localStorage.getItem('token'))}&filename=${encodeURIComponent(file.filename)}`;
+      document.body.appendChild(iframe);
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
     } catch (error) {
       console.error('Error downloading file:', error);
-      alert('Failed to download file');
+      alert('Failed to download file. Please try again.');
     }
   };
 
@@ -126,89 +165,90 @@ export default function AdminDashboard({ token }) {
 
   return (
     <div className="max-w-6xl mx-auto px-4">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="mt-2 text-lg text-gray-600">Manage all client files and uploads</p>
-      </div>
-
-      <div className="mb-8">
-        <label htmlFor="client-select" className="block text-sm font-medium text-gray-700 mb-2">
-          Select Client
-        </label>
-        <select
-          id="client-select"
-          value={selectedClient}
-          onChange={(e) => setSelectedClient(e.target.value)}
-          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <label htmlFor="client-select" className="block text-sm font-medium text-gray-700 mb-2">
+            Select Client
+          </label>
+          <select
+            id="client-select"
+            value={selectedClient}
+            onChange={(e) => setSelectedClient(e.target.value)}
+            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          >
+            <option value="">Select a client</option>
+            <option value="all">All Clients</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={fetchAllFiles}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-colors duration-200"
+          title="List all files in database"
         >
-          <option value="">Select a client</option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </select>
+          Debug Files
+        </button>
       </div>
-
       <div className="bg-white rounded-lg shadow-sm p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Uploaded Files</h2>
-        
-        {files.length === 0 ? (
-          <p className="text-gray-500 text-center py-4">No files uploaded for this client</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded By</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Range</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {files.map((file) => (
-                  <tr key={file.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {file.filename}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {file.uploaded_by}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(file.uploaded_at), 'MMM d, yyyy HH:mm')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(file.start_date), 'MMM d, yyyy')} - {format(new Date(file.end_date), 'MMM d, yyyy')}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleDownload(file)}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200"
-                          title="Download file"
-                        >
-                          <ArrowDownTrayIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                          Download
-                        </button>
-                        <button
-                          onClick={() => handleDelete(file.id)}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors duration-200"
-                          title="Delete file"
-                        >
-                          <TrashIcon className="h-5 w-5 mr-2" aria-hidden="true" />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Uploaded By</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Upload Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Range</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {files.map((file) => (
+              <tr key={file.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {file.filename}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {file.client_name || 'No Client'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {file.uploaded_by}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {format(new Date(file.uploaded_at), 'MMM d, yyyy HH:mm')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {format(new Date(file.start_date), 'MMM d, yyyy')} - {format(new Date(file.end_date), 'MMM d, yyyy')}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => handleDownload(file)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200"
+                      title="Download file"
+                    >
+                      <ArrowUpTrayIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                      Download
+                    </button>
+                    <button
+                      onClick={() => handleDelete(file.id)}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors duration-200"
+                      title="Delete file"
+                    >
+                      <TrashIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
-}
+};

@@ -6,20 +6,68 @@ import FileUpload from "../components/FileUpload";
 import DateRangePicker from "../components/DateRangePicker";
 import FileList from "../components/FileList";
 
-export default function Upload({ token }) {
+export default function Upload({ token, role: userRole }) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [loadingClients, setLoadingClients] = useState(false);
   const [error, setError] = useState("");
   const [uploadHistory, setUploadHistory] = useState([]);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [selectedClient, setSelectedClient] = useState("");
+  const [clients, setClients] = useState([]);
 
-  // Fetch history when token changes
+  // Fetch history and clients when token or role changes
   React.useEffect(() => {
+    console.log('useEffect - token:', token, 'role:', userRole);
     if (token) {
+      console.log('Token exists, fetching history and clients...');
       fetchUploadHistory();
+      if (userRole === 'admin') {
+        console.log('User is admin, fetching clients...');
+        fetchClients();
+      } else {
+        console.log('User is not admin, skipping client fetch');
+      }
+    } else {
+      console.log('No token available');
     }
-  }, [token]);
+  }, [token, userRole]);
+
+  const fetchClients = async () => {
+    console.log('fetchClients called, role:', userRole);
+    if (userRole !== 'admin') {
+      console.log('Not an admin, skipping client fetch');
+      return;
+    }
+    
+    try {
+      console.log('Fetching clients...');
+      setLoadingClients(true);
+      setError('');
+      const response = await axios.get('/admin/clients', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      console.log('Clients fetched:', response.data);
+      setClients(response.data);
+      
+      // Auto-select the first client if available
+      if (response.data.length > 0) {
+        console.log('Setting first client:', response.data[0]);
+        setSelectedClient(response.data[0].id.toString());
+      } else {
+        console.log('No clients available');
+      }
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+      }
+      setError('Failed to fetch client list');
+    } finally {
+      setLoadingClients(false);
+    }
+  };
 
   const fetchUploadHistory = async () => {
     try {
@@ -69,6 +117,11 @@ export default function Upload({ token }) {
       return;
     }
 
+    if (userRole === 'admin' && !selectedClient) {
+      setError("Please select a client for this upload");
+      return;
+    }
+
     if (!validateDateRange()) return;
     if (!validateFile(file)) return;
 
@@ -76,6 +129,9 @@ export default function Upload({ token }) {
     formData.append('file', file);
     formData.append('start_date', format(startDate, 'yyyy-MM-dd'));
     formData.append('end_date', format(endDate, 'yyyy-MM-dd'));
+    if (userRole === 'admin') {
+      formData.append('client_id', selectedClient);
+    }
 
     try {
       setUploading(true);
@@ -98,68 +154,81 @@ export default function Upload({ token }) {
   };
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Upload File</h1>
-        <div className="flex space-x-4">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-          >
-            <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
-              <path fillRule="evenodd" d="M9 4a1 1 0 00-2 0v2H4a1 1 0 100 2h2v2a1 1 0 102 0V8h2a1 1 0 100-2H9V4z" clipRule="evenodd" />
-            </svg>
-            New Upload
-          </button>
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Upload File</h1>
         </div>
-      </div>
-
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-5 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Upload Details</h2>
-        </div>
-        <div className="p-6">
-          <form onSubmit={handleUpload} className="space-y-6">
+        <div className="bg-white py-8 px-6 shadow rounded-lg sm:px-10">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold text-center text-gray-900">Upload Excel File</h2>
+            
             {error && (
-              <div className="rounded-md bg-red-50 p-4">
-                <div className="flex">
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                  </div>
-                </div>
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <span className="block sm:inline">{error}</span>
               </div>
             )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select File
-              </label>
+            
+            {userRole === 'admin' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Select Client
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                {loadingClients ? (
+                  <div className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-md bg-gray-100">
+                    Loading clients...
+                    <div className="text-xs text-gray-500 mt-1">Debug: {`loadingClients=${loadingClients}, clients.length=${clients.length}`}</div>
+                  </div>
+                ) : (
+                  <select
+                    value={selectedClient}
+                    onChange={(e) => setSelectedClient(e.target.value)}
+                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                    disabled={loadingClients || clients.length === 0}
+                  >
+                    {clients.length === 0 ? (
+                      <option value="">No clients available</option>
+                    ) : (
+                      <>
+                        <option value="">Select a client</option>
+                        {clients.map((client) => (
+                          <option key={client.id} value={client.id}>
+                            {client.name}
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                )}
+                {clients.length === 0 && !loadingClients && (
+                  <p className="mt-1 text-sm text-red-600">No clients found. Please add clients first.</p>
+                )}
+              </div>
+            )}
+            
+            <div className="flex justify-center">
               <FileUpload
                 onFileSelect={setFile}
+                uploading={uploading}
                 error={error}
-                className="w-full"
               />
             </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date Range
-              </label>
+            
+            <div className="mt-6">
               <DateRangePicker
                 startDate={startDate}
                 endDate={endDate}
                 onStartDateChange={setStartDate}
                 onEndDateChange={setEndDate}
-                className="w-full"
               />
             </div>
-
-            <div>
+            
+            <div className="mt-6">
               <button
-                type="submit"
-                disabled={uploading || !file || !startDate || !endDate}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleUpload}
+                disabled={uploading || !file || !startDate || !endDate || (userRole === 'admin' && (!selectedClient || clients.length === 0))}
+                className="relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading ? (
                   <>
@@ -170,25 +239,15 @@ export default function Upload({ token }) {
                     Uploading...
                   </>
                 ) : (
-                  "Upload File"
+                  'Upload File'
                 )}
               </button>
             </div>
-          </form>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-5 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">Upload History</h2>
           </div>
-          <div className="p-6">
-            <FileList
-              files={uploadHistory}
-              token={token}
-              className="w-full"
-            />
+          
+          <div className="mt-12">
+            <h2 className="text-xl font-semibold mb-4">Upload History</h2>
+            <FileList files={uploadHistory} />
           </div>
         </div>
       </div>
