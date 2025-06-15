@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from '../api';
 import { format } from 'date-fns';
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
+import { ArrowUpTrayIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 export default function AdminDashboard({ token }) {
   const [clients, setClients] = useState([]);
@@ -12,7 +12,7 @@ export default function AdminDashboard({ token }) {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await axios.get('/api/clients', {
+        const response = await axios.get('/admin/clients', {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -33,13 +33,14 @@ export default function AdminDashboard({ token }) {
 
   useEffect(() => {
     if (selectedClient) {
+      setLoading(true);
       fetchClientFiles();
     }
   }, [selectedClient]);
 
   const fetchClientFiles = async () => {
     try {
-      const response = await axios.get(`/files/history`, {
+      const response = await axios.get(`/admin/files/client/${selectedClient}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -47,30 +48,65 @@ export default function AdminDashboard({ token }) {
       setFiles(response.data);
     } catch (error) {
       console.error('Error fetching client files:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDownload = async (file) => {
     try {
-      const response = await axios.get(`/files/download/${file.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        responseType: 'blob'
-      });
-      
-      // Create a blob URL and trigger download
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', file.filename);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Create a form element
+      const form = document.createElement('form');
+      form.method = 'GET';
+      form.action = `/files/download/${file.id}`;
+      form.target = '_blank'; // Open in new tab
+
+      // Create hidden input for token
+      const tokenInput = document.createElement('input');
+      tokenInput.type = 'hidden';
+      tokenInput.name = 'token';
+      tokenInput.value = localStorage.getItem('token');
+      form.appendChild(tokenInput);
+
+      // Create hidden input for filename
+      const filenameInput = document.createElement('input');
+      filenameInput.type = 'hidden';
+      filenameInput.name = 'filename';
+      filenameInput.value = file.filename;
+      form.appendChild(filenameInput);
+
+      // Append form to body and submit
+      document.body.appendChild(form);
+      form.submit();
+      document.body.removeChild(form);
     } catch (error) {
       console.error('Error downloading file:', error);
       alert('Failed to download file');
+    }
+  };
+
+  const handleDelete = async (fileId) => {
+    if (!window.confirm('Are you sure you want to delete this file? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await axios.delete(`/files/delete/${fileId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (response.data.msg === 'File deleted successfully') {
+        // Refresh the file list
+        fetchClientFiles();
+        alert('File deleted successfully');
+      } else {
+        alert('Failed to delete file');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      alert('Failed to delete file');
     }
   };
 
@@ -147,13 +183,24 @@ export default function AdminDashboard({ token }) {
                       {format(new Date(file.start_date), 'MMM d, yyyy')} - {format(new Date(file.end_date), 'MMM d, yyyy')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      <button
-                        onClick={() => handleDownload(file)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-                      >
-                        <ArrowDownTrayIcon className="h-4 w-4 mr-2" aria-hidden="true" />
-                        Download
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleDownload(file)}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-200"
+                          title="Download file"
+                        >
+                          <ArrowDownTrayIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                          Download
+                        </button>
+                        <button
+                          onClick={() => handleDelete(file.id)}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 transition-colors duration-200"
+                          title="Delete file"
+                        >
+                          <TrashIcon className="h-5 w-5 mr-2" aria-hidden="true" />
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

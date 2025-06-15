@@ -25,7 +25,7 @@ class FileMeta(Base):
     filename = Column(String)
     path = Column(String)
     uploaded_by = Column(Integer, ForeignKey("users.id"))
-    client_id = Column(Integer, ForeignKey("clients.id"))
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
     start_date = Column(Date)
     end_date = Column(Date)
     uploaded_at = Column(DateTime, default=datetime.datetime.utcnow)

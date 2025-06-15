@@ -14,20 +14,20 @@ export default function Upload({ token }) {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
+  // Fetch history when token changes
   React.useEffect(() => {
-    fetchUploadHistory();
-  }, []);
+    if (token) {
+      fetchUploadHistory();
+    }
+  }, [token]);
 
   const fetchUploadHistory = async () => {
     try {
-      const response = await axios.get('/files/history', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await axios.get('/files/history');
       setUploadHistory(response.data);
     } catch (error) {
       console.error('Error fetching upload history:', error);
+      setError(error.response?.data?.detail || 'Failed to fetch upload history');
     }
   };
 
@@ -83,7 +83,6 @@ export default function Upload({ token }) {
       
       const response = await axios.post('/files/upload', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });

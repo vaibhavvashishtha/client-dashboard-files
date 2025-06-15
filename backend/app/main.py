@@ -11,11 +11,13 @@ app = FastAPI()
 def root():
     return {"message": "API running!"}
 
-# CORS for dev
+# CORS settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], allow_credentials=True,
-    allow_methods=["*"], allow_headers=["*"],
+    allow_origins=["http://localhost:3000"],  # Only allow requests from frontend
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],  # Only allow needed HTTP methods
+    allow_headers=["Authorization", "Content-Type"],  # Only allow needed headers
 )
 
 

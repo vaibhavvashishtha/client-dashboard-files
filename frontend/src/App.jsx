@@ -94,16 +94,16 @@ function App() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Routes>
-            <Route path="/dashboard" element={<Dashboard token={token} />} />
-            <Route path="/upload" element={<Upload token={token} />} />
-            <Route path="/analytics" element={<Analytics token={token} />} />
-            <Route path="/admin" element={<AdminDashboard token={token} />} />
-            <Route path="/" element={<Dashboard token={token} />} />
+            <Route path="/dashboard" element={<Dashboard token={token} role={role} />} />
+            <Route path="/upload" element={<Upload token={token} role={role} />} />
+            <Route path="/analytics" element={<Analytics token={token} role={role} />} />
+            <Route path="/admin" element={<AdminDashboard token={token} role={role} />} />
+            <Route path="/" element={<Dashboard token={token} role={role} />} />
           </Routes>
         </div>
 
         {/* Logout Confirmation Modal */}
-        {showLogoutModal && token && (
+        {showLogoutModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <div className="bg-white p-8 rounded-lg shadow-lg">
               <div className="sm:flex sm:items-start">

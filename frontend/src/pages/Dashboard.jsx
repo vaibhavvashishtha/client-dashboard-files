@@ -1,8 +1,40 @@
 import React, { useEffect, useState } from "react";
 import axios from "../api";
 import { format } from "date-fns";
-import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import { ArrowDownTrayIcon, ArrowUpTrayIcon } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
+
+const downloadFile = async (fileId, filename) => {
+  try {
+    const response = await axios.get(`/files/download/${fileId}`, {
+      responseType: 'blob',
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      }
+    });
+
+    // Create blob URL and trigger download
+    const blob = new Blob([response.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    link.setAttribute('target', '_self'); // Download in same tab
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading file:', error);
+    if (error.response) {
+      alert(`Failed to download file: ${error.response.data.detail}`);
+    } else {
+      alert('Failed to download file. Please try again.');
+    }
+  }
+};
 
 export default function Dashboard({ token }) {
   const [files, setFiles] = useState([]);
@@ -48,7 +80,7 @@ export default function Dashboard({ token }) {
             onClick={() => navigate('/upload')}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            <ArrowDownTrayIcon className="-ml-1 mr-2 h-5 w-5" />
+            <ArrowUpTrayIcon className="-ml-1 mr-2 h-5 w-5" />
             Upload File
           </button>
         </div>
@@ -106,15 +138,17 @@ export default function Dashboard({ token }) {
                     <div className="text-sm text-gray-900">{format(new Date(file.uploaded_at), 'MMM d, yyyy HH:mm')}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <a
-                      href={`http://localhost:8000/files/download/${file.id}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-indigo-600 hover:text-indigo-900 flex items-center"
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Download file: ${file.filename}?`)) {
+                          downloadFile(file.id, file.filename);
+                        }
+                      }}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                     >
                       <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
                       Download
-                    </a>
+                    </button>
                   </td>
                 </tr>
               ))}
