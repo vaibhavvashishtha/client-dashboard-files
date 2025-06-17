@@ -43,83 +43,6 @@ def get_upload_history(
         logger.error(f"Error getting file history: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/download/{file_id}")
-def download_file(
-    file_id: int,
-    db: Session = Depends(get_db),
-    token: str = Query(None)
-):
-    try:
-        # First try to get user from Authorization header
-        try:
-            user = get_current_user(token=None, db=db)
-        except HTTPException:
-            if not token:
-                raise HTTPException(status_code=401, detail="No authentication provided")
-            
-            # If token in query parameter, verify it
-            try:
-                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-                username = payload.get("sub")
-                if not username:
-                    raise ValueError("Invalid token")
-                user = db.query(User).filter(User.username == username).first()
-                if not user:
-                    raise ValueError("User not found")
-            except (JWTError, ValueError) as e:
-                raise HTTPException(status_code=401, detail=str(e))
-
-        # Get file metadata
-        file_meta = db.query(FileMeta).filter(FileMeta.id == file_id).first()
-        if not file_meta:
-            raise HTTPException(status_code=404, detail="File not found")
-
-        # Check if user has access to this file
-        if user.role == "admin":
-            pass  # Admin can download any file
-        elif user.role == "employee":
-            if file_meta.client_id != user.client_id:
-                raise HTTPException(status_code=403, detail="Not authorized to download this file")
-        else:  # client user
-            if file_meta.uploaded_by != user.id:
-                raise HTTPException(status_code=403, detail="Not authorized to download this file")
-
-        # Get absolute file path and ensure it exists
-        file_path = os.path.join(UPLOAD_DIR, file_meta.path)
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail=f"File not found at path: {file_path}")
-
-        # Log the download
-        log = LogEntry(user=user.username, action="download", file_id=file_id)
-        db.add(log)
-        db.commit()
-
-        # Read file content and return as response
-        try:
-            with open(file_path, 'rb') as f:
-                content = f.read()
-                return Response(
-                    content,
-                    headers={
-                        'Content-Disposition': f'attachment; filename="{file_meta.filename}"',
-                        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-                    }
-                )
-        except Exception as e:
-            logger.error(f"Error reading file {file_path}: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
-    except HTTPException as e:
-        logger.error(f"Error downloading file {file_id}: {str(e.detail)}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error downloading file {file_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-    except HTTPException as e:
-        logger.error(f"Error downloading file {file_id}: {str(e.detail)}")
-        raise
-    except Exception as e:
-        logger.error(f"Unexpected error downloading file {file_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.post("/upload")
 def upload_file(
@@ -246,35 +169,6 @@ def upload_file(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-        # Save file to disk using the generated ID
-        print("Saving file to disk...")
-        file_path = os.path.join(UPLOAD_DIR, str(file_meta.id) + "_" + file.filename)
-        print(f"File path: {file_path}")
-        
-        # Ensure storage directory exists
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        print("File saved to disk successfully")
-
-        # Update the file path in the database
-        file_meta.path = file_path
-        db.commit()
-        print("File path updated in database")
-
-        # Log the upload
-        log = LogEntry(user=user.username, action="upload", file_id=file_meta.id)
-        db.add(log)
-        db.commit()
-        print("Upload logged successfully")
-
-        return {"msg": "File uploaded successfully", "file_id": file_meta.id}
-    except Exception as e:
-        print(f"Error during upload: {str(e)}")
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.get("/list")
 def list_files(db: Session = Depends(get_db), user=Depends(get_current_user)):
     if user.role == "admin":
@@ -366,9 +260,13 @@ def download_file(
     db.add(log)
     db.commit()
     
+    # Ensure the file exists on disk
+    if not os.path.exists(file_meta.path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
     # Return the file
     return FileResponse(
-        file_meta.path,  # Use the stored path
-        filename=file_meta.name,
-        media_type=file_meta.type
+        file_meta.path,
+        filename=file_meta.filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
