@@ -4,12 +4,15 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
+from passlib.context import CryptContext
 
 from .database import get_db
 from .models import User
 from .config import SECRET_KEY, ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 SECRET_KEY = "mysupersecretkey"
 ALGORITHM = "HS256"
@@ -25,9 +28,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def verify_password(plain_password: str, hashed_password: str):
-    # TODO: Implement proper password verification using bcrypt
-    return plain_password == hashed_password
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hashed value using bcrypt."""
+    return pwd_context.verify(plain_password, hashed_password)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
