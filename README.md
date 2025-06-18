@@ -8,6 +8,8 @@ A comprehensive file management dashboard that allows clients to upload files wi
 - **Role-Based Access Control**:
   - **Admin**: Full access to all features including user management
   - **Client**: File upload and view access to their own files
+  - **Manufacturer/Hospital**: Limited client-style access for their entity
+  - **Affordplan**: Can create manufacturer and hospital accounts
 - **File Management**:
   - Upload files with date range metadata
   - View and download files

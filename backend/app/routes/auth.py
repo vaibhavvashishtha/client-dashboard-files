@@ -27,13 +27,20 @@ def seed_demo_users():
     db = SessionLocal()
     if db.query(Client).count() == 0:
         c1 = Client(name="AcmeCorp")
-        db.add(c1)
+        hospital = Client(name="CityHospital")
+        manufacturer = Client(name="MegaPharma")
+        db.add_all([c1, hospital, manufacturer])
         db.commit()
         db.refresh(c1)
+        db.refresh(hospital)
+        db.refresh(manufacturer)
         users = [
             User(username="admin", password=get_password_hash("admin123"), role="admin"),
             User(username="client1", password=get_password_hash("client123"), role="client", client_id=c1.id),
             User(username="employee1", password=get_password_hash("emp123"), role="employee", client_id=c1.id),
+            User(username="hospital@example.com", password=get_password_hash("hosp123"), role="hospital", client_id=hospital.id),
+            User(username="manufacturer@example.com", password=get_password_hash("manu123"), role="manufacturer", client_id=manufacturer.id),
+            User(username="affordplan@example.com", password=get_password_hash("afford123"), role="affordplan"),
         ]
         db.add_all(users)
         db.commit()

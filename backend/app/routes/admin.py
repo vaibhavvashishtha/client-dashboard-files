@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from .. import models, schemas, database
 from ..database import get_db
-from ..utils import get_current_user
+from ..utils import get_current_user, get_password_hash
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -35,3 +35,36 @@ def get_client_files(
         "end_date": file.end_date.strftime("%Y-%m-%d"),
         "uploaded_at": file.uploaded_at.strftime("%Y-%m-%d %H:%M:%S")
     } for file in files]
+
+
+@router.post("/affordplan/create-account", response_model=schemas.User)
+def create_entity_account(
+    entity_name: str,
+    email: str,
+    password: str,
+    role: str,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Create hospital or manufacturer account. Affordplan only."""
+    if current_user.role != "affordplan":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    if role not in ["hospital", "manufacturer"]:
+        raise HTTPException(status_code=400, detail="Role must be 'hospital' or 'manufacturer'")
+
+    client = models.Client(name=entity_name)
+    db.add(client)
+    db.commit()
+    db.refresh(client)
+
+    user = models.User(
+        username=email,
+        password=get_password_hash(password),
+        role=role,
+        client_id=client.id,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user

@@ -8,7 +8,8 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password = Column(String)
-    role = Column(String)  # admin, client, employee
+    # Possible roles: admin, client, employee, manufacturer, hospital, affordplan
+    role = Column(String)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
     client = relationship("Client", back_populates="users")
 
