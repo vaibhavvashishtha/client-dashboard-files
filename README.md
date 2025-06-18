@@ -53,10 +53,14 @@ cd client-dashboard-files
    Create a `.env` file in the `backend` directory with the following variables:
    ```
    SECRET_KEY=your-secret-key
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=120
    DATABASE_URL=sqlite:///./sql_app.db  # For development
    # For production, use:
    # DATABASE_URL=postgresql://user:password@localhost/dbname
    ```
+   If you plan to run the project with Docker Compose, copy `backend/.env.example`
+   to `backend/.env` so these variables are picked up automatically.
 
 4. **Run database migrations**:
    ```bash
@@ -121,9 +125,9 @@ cd client-dashboard-files
 ### Backend
 
 - `SECRET_KEY`: Secret key for JWT token generation
-- `DATABASE_URL`: Database connection URL
-- `ACCESS_TOKEN_EXPIRE_MINUTES`: JWT token expiration time (default: 1440 minutes / 24 hours)
 - `ALGORITHM`: JWT algorithm (default: HS256)
+- `ACCESS_TOKEN_EXPIRE_MINUTES`: JWT token expiration time (default: 120 minutes)
+- `DATABASE_URL`: Database connection URL
 
 ### Frontend
 

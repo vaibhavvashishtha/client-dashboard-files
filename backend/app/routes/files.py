@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import FileMeta, User, LogEntry, Client
 from ..auth import get_current_user
-from ..config import UPLOAD_DIR
+from ..config import UPLOAD_DIR, SECRET_KEY, ALGORITHM
 import logging
 
 # Configure logging

@@ -5,6 +5,7 @@ from ..models import User
 from ..database import get_db
 from ..utils import verify_password, create_access_token, get_password_hash
 from datetime import timedelta
+from ..config import ACCESS_TOKEN_EXPIRE_MINUTES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -15,7 +16,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     access_token = create_access_token(
         data={"sub": user.username, "role": user.role, "id": user.id, "client_id": user.client_id},
-        expires_delta=timedelta(minutes=120),
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
