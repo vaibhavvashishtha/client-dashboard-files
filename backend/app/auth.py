@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import Optional
 
+from .utils import verify_password as utils_verify_password
+
 from .database import get_db
 from .models import User
 from .config import SECRET_KEY, ALGORITHM
@@ -26,8 +28,8 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def verify_password(plain_password: str, hashed_password: str):
-    # TODO: Implement proper password verification using bcrypt
-    return plain_password == hashed_password
+    """Wrap utils.verify_password for backward compatibility."""
+    return utils_verify_password(plain_password, hashed_password)
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
