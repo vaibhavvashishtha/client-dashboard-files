@@ -25,6 +25,8 @@ export default function Login({ setToken, setRole }) {
       // Decode role from username for demo (in production, decode JWT)
       if (username === "admin") localStorage.setItem("role", "admin");
       else if (username === "employee1") localStorage.setItem("role", "employee");
+      else if (username === "affordplan1") localStorage.setItem("role", "affordplan");
+      else if (username === "manu1") localStorage.setItem("role", "manufacturer");
       else localStorage.setItem("role", "client");
       
       setRole(localStorage.getItem("role"));

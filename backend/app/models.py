@@ -8,9 +8,11 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password = Column(String)
-    role = Column(String)  # admin, client, employee
+    role = Column(String)  # admin, client, employee, affordplan, manufacturer
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
+    manufacturer_id = Column(Integer, ForeignKey("manufacturers.id"), nullable=True)
     client = relationship("Client", back_populates="users")
+    manufacturer = relationship("Manufacturer", back_populates="users", uselist=False)
 
 class Client(Base):
     __tablename__ = "clients"
@@ -38,3 +40,23 @@ class LogEntry(Base):
     action = Column(String)
     file_id = Column(Integer, ForeignKey("files.id"))
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+
+
+class Manufacturer(Base):
+    __tablename__ = "manufacturers"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True)
+    processed_files = relationship("ProcessedFile", back_populates="manufacturer")
+    users = relationship("User", back_populates="manufacturer")
+
+
+class ProcessedFile(Base):
+    __tablename__ = "processed_files"
+    id = Column(Integer, primary_key=True, index=True)
+    hospital_file_id = Column(Integer, ForeignKey("files.id"))
+    manufacturer_id = Column(Integer, ForeignKey("manufacturers.id"))
+    filename = Column(String)
+    path = Column(String)
+    uploaded_by = Column(Integer, ForeignKey("users.id"))
+    quote_path = Column(String, nullable=True)
+    manufacturer = relationship("Manufacturer", back_populates="processed_files")

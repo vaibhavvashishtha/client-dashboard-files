@@ -3,8 +3,11 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
+import HospitalUpload from "./pages/HospitalUpload";
 import Analytics from "./pages/Analytics";
 import AdminDashboard from "./pages/AdminDashboard";
+import AffordplanDashboard from "./pages/AffordplanDashboard";
+import ManufacturerDashboard from "./pages/ManufacturerDashboard";
 import { format } from "date-fns";
 
 function App() {
@@ -66,7 +69,7 @@ function App() {
                   )}
                   {role === "client" && (
                     <Link
-                      to="/upload"
+                      to="/hospital-upload"
                       className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-white hover:border-primary-500 hover:text-white"
                     >
                       Upload
@@ -78,6 +81,22 @@ function App() {
                       className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-white hover:border-primary-500 hover:text-white"
                     >
                       Upload
+                    </Link>
+                  )}
+                  {role === "affordplan" && (
+                    <Link
+                      to="/affordplan"
+                      className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-white hover:border-primary-500 hover:text-white"
+                    >
+                      Affordplan
+                    </Link>
+                  )}
+                  {role === "manufacturer" && (
+                    <Link
+                      to="/manufacturer"
+                      className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-white hover:border-primary-500 hover:text-white"
+                    >
+                      Manufacturer
                     </Link>
                   )}
                 </div>
@@ -98,6 +117,9 @@ function App() {
           <Routes>
             <Route path="/dashboard" element={<Dashboard token={token} role={role} />} />
             <Route path="/upload" element={<Upload token={token} role={role} />} />
+            <Route path="/hospital-upload" element={<HospitalUpload token={token} role={role} />} />
+            <Route path="/affordplan" element={<AffordplanDashboard />} />
+            <Route path="/manufacturer" element={<ManufacturerDashboard />} />
             <Route path="/analytics" element={<Analytics token={token} role={role} />} />
             <Route path="/admin" element={<AdminDashboard token={token} role={role} />} />
             <Route path="/" element={<Dashboard token={token} role={role} />} />
