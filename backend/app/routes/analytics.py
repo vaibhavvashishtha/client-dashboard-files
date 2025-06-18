@@ -15,5 +15,6 @@ def get_logs(db: Session = Depends(get_db), user=Depends(get_current_user)):
         "user": l.user,
         "action": l.action,
         "file_id": l.file_id,
+        "file_name": getattr(l, "file_name", None),
         "timestamp": l.timestamp
     } for l in logs]

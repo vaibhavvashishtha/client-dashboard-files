@@ -36,5 +36,6 @@ class LogEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     user = Column(String)
     action = Column(String)
+    file_name = Column(String)
     file_id = Column(Integer, ForeignKey("files.id"))
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
