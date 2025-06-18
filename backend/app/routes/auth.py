@@ -22,18 +22,22 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 # For demo only: seed users on first run
 @router.on_event("startup")
 def seed_demo_users():
-    from ..models import Client, User
+    from ..models import Client, User, Manufacturer
     from ..database import SessionLocal
     db = SessionLocal()
     if db.query(Client).count() == 0:
         c1 = Client(name="AcmeCorp")
-        db.add(c1)
+        m1 = Manufacturer(name="WidgetCo")
+        db.add_all([c1, m1])
         db.commit()
         db.refresh(c1)
+        db.refresh(m1)
         users = [
             User(username="admin", password=get_password_hash("admin123"), role="admin"),
             User(username="client1", password=get_password_hash("client123"), role="client", client_id=c1.id),
             User(username="employee1", password=get_password_hash("emp123"), role="employee", client_id=c1.id),
+            User(username="affordplan1", password=get_password_hash("afford123"), role="affordplan"),
+            User(username="manu1", password=get_password_hash("manu123"), role="manufacturer", manufacturer_id=m1.id),
         ]
         db.add_all(users)
         db.commit()

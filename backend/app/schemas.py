@@ -6,6 +6,7 @@ class User(BaseModel):
     username: str
     role: str
     client_id: Optional[int] = None
+    manufacturer_id: Optional[int] = None
 
 class Client(BaseModel):
     id: Optional[int] = None
@@ -27,3 +28,18 @@ class LogEntry(BaseModel):
     action: str
     file_id: int
     timestamp: str
+
+
+class Manufacturer(BaseModel):
+    id: Optional[int] = None
+    name: str
+
+
+class ProcessedFile(BaseModel):
+    id: Optional[int] = None
+    hospital_file_id: int
+    manufacturer_id: int
+    filename: str
+    path: str
+    uploaded_by: int
+    quote_path: Optional[str] = None
