@@ -1,21 +1,19 @@
 # Client File Dashboard
 
-A comprehensive file management dashboard that allows clients to upload files with date ranges, while providing role-based access control for viewing and downloading files. The application features separate interfaces for administrators and clients, with secure authentication and file management capabilities.
+A comprehensive file management dashboard that lets clients securely upload files with date ranges while providing role-based access to view and download them.
 
 ## Features
 
-- **User Authentication**: Secure login system with JWT tokens
-- **Role-Based Access Control**:
-  - **Admin**: Full access to all features including user management
-  - **Client**: File upload and view access to their own files
-- **File Management**:
-  - Upload files with date range metadata
-  - View and download files
-  - Track file upload history
-- **Admin Dashboard**:
-  - View all files across clients
-  - Manage users and permissions
-  - Monitor system activity
+- **User Authentication** using JWT
+- **Role-Based Access Control**
+- **File Management** with upload history
+- **Admin Dashboard** to monitor all activity
+
+## Roles
+
+- **Admin** – manage all clients and files
+- **Employee** – access files for their assigned client
+- **Client** – upload and download their own files
 
 ## Prerequisites
 
@@ -35,133 +33,87 @@ cd client-dashboard-files
 
 ### 2. Backend Setup
 
-#### Development Environment
-
-1. **Set up a virtual environment**:
+1. **Create a virtual environment**
    ```bash
    cd backend
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   source venv/bin/activate  # On Windows use venv\Scripts\activate
    ```
-
-2. **Install dependencies**:
+2. **Install dependencies**
    ```bash
    pip install -r requirements.txt
    ```
-
-3. **Set up environment variables**:
-   Create a `.env` file in the `backend` directory with the following variables:
+3. **Environment variables** – create a `.env` file in `backend`:
    ```
    SECRET_KEY=your-secret-key
-   DATABASE_URL=sqlite:///./sql_app.db  # For development
-   # For production, use:
-   # DATABASE_URL=postgresql://user:password@localhost/dbname
+   DATABASE_URL=sqlite:///./app.db
+   ACCESS_TOKEN_EXPIRE_MINUTES=120
+   ALGORITHM=HS256
    ```
-
-4. **Run database migrations**:
+4. **Run database migrations**
    ```bash
    alembic upgrade head
    ```
-
-5. **Start the backend server**:
+   If upgrading from an older version, run `python scripts/migrate_database.py` to apply legacy changes.
+5. **Create an admin user**
+   ```bash
+   python scripts/create_admin.py
+   ```
+6. **Start the backend**
    ```bash
    uvicorn app.main:app --reload
    ```
-   The API will be available at `http://localhost:8000`
-   API documentation (Swagger UI) is available at `http://localhost:8000/docs`
 
 ### 3. Frontend Setup
 
-1. **Install dependencies**:
+1. **Install dependencies**
    ```bash
-   cd frontend
+   cd ../frontend
    npm install
    ```
-
-2. **Configure environment variables**:
-   Create a `.env` file in the `frontend` directory:
+2. **Environment variables** – create a `.env` file in `frontend`:
    ```
    VITE_API_URL=http://localhost:8000
    ```
-
-3. **Start the development server**:
+3. **Start the frontend**
    ```bash
    npm run dev
    ```
-   The frontend will be available at `http://localhost:3000`
+   The app will be available at `http://localhost:3000`.
 
-## Available Scripts
+## Onboarding Process
 
-### Backend
+1. Admin signs in and creates clients and employee accounts (see example script above).
+2. Provide new users with their credentials.
+3. Employees and clients log in via `/login` and can upload or view files according to their role.
 
-- `uvicorn app.main:app --reload`: Start the development server
-- `pytest`: Run backend tests
-- `alembic upgrade head`: Apply database migrations
+## File Flow
 
-### Frontend
-
-- `npm run dev`: Start the development server
-- `npm run build`: Build for production
-- `npm run preview`: Preview production build
-- `npm run lint`: Run ESLint
-- `npm test`: Run tests
-
-## Default Users
-
-### Admin User
-- **Username**: admin
-- **Password**: admin123 (Change this in production!)
-
-### Client User
-- **Username**: client1
-- **Password**: client123
+1. A file is uploaded via the dashboard.
+2. Metadata is stored in the database and the file is saved to `backend/storage` as `<id>_<original-name>`.
+3. Users can retrieve files through the download endpoint which validates their role.
+4. All downloads and uploads are logged in the `logs` table for auditing.
 
 ## Environment Variables
 
 ### Backend
-
-- `SECRET_KEY`: Secret key for JWT token generation
-- `DATABASE_URL`: Database connection URL
-- `ACCESS_TOKEN_EXPIRE_MINUTES`: JWT token expiration time (default: 1440 minutes / 24 hours)
-- `ALGORITHM`: JWT algorithm (default: HS256)
-
-### Frontend
-
-- `VITE_API_URL`: Base URL for API requests (default: http://localhost:8000)
-
-## Deployment
-
-### Backend
-
-1. Set up a production database (PostgreSQL recommended)
-2. Configure environment variables in production
-3. Use a production ASGI server like Uvicorn with Gunicorn:
-   ```bash
-   gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app
-   ```
+- `SECRET_KEY` – JWT signing key
+- `DATABASE_URL` – database connection string
+- `ACCESS_TOKEN_EXPIRE_MINUTES` – token lifetime in minutes
+- `ALGORITHM` – JWT algorithm
+- `UPLOAD_DIR` – storage folder (defaults to `backend/storage`)
 
 ### Frontend
+- `VITE_API_URL` – base URL for API requests
 
-1. Build the production bundle:
-   ```bash
-   npm run build
-   ```
-2. Deploy the contents of the `dist` directory to your web server
+## Test Commands
 
-## Troubleshooting
+- `pytest` – run backend tests
+- `python scripts/test_upload.py` – simple upload test
+- `npm run lint` – lint frontend code
 
-- **Database connection issues**: Ensure your database is running and the connection string is correct
-- **CORS errors**: Verify the backend CORS settings match your frontend URL
-- **Authentication issues**: Check JWT token expiration and secret key configuration
+## Migration Steps
 
-## Contributing
+1. Run `alembic upgrade head` for new database revisions.
+2. If migrating from earlier versions, execute `python scripts/migrate_database.py` once to add legacy columns.
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
