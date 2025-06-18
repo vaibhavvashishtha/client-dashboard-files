@@ -376,9 +376,9 @@ async def upload_file(
         logger.info(f"Client ID: {client_id if user.role == 'admin' else user.client_id}")
         
         # Validate file type
-        if not file.filename.lower().endswith(('.xls', '.xlsx')):
+        if not file.filename.lower().endswith(('.xls', '.xlsx', '.csv')):
             logger.error(f"Error: Invalid file type for {file.filename}")
-            raise HTTPException(status_code=400, detail="File must be XLS or XLSX")
+            raise HTTPException(status_code=400, detail="File must be XLS, XLSX or CSV")
         
         # Validate file size (100MB limit)
         MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB in bytes
@@ -398,6 +398,20 @@ async def upload_file(
             if not client:
                 logger.error(f"Error: Client {client_id} not found")
                 raise HTTPException(status_code=404, detail="Client not found")
+
+        target_client_id = client_id if user.role == "admin" else user.client_id
+
+        # Delete existing file with same name for the same client/hospital
+        existing = db.query(FileMeta).filter(
+            FileMeta.filename == file.filename,
+            FileMeta.client_id == target_client_id
+        ).first()
+        if existing:
+            if existing.path and os.path.exists(existing.path):
+                os.remove(existing.path)
+            db.delete(existing)
+            db.add(LogEntry(user=str(user.id), action="overwrite", file_id=existing.id, file_name=existing.filename))
+            db.commit()
         
         # Create file metadata first to get the ID
         logger.info("=== Creating File Metadata ===")

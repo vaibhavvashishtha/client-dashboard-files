@@ -25,5 +25,6 @@ class LogEntry(BaseModel):
     id: Optional[int] = None
     user: str
     action: str
+    file_name: Optional[str] = None
     file_id: int
     timestamp: str
